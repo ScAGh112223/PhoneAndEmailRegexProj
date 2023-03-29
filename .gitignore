@@ -1,4 +1,5 @@
-venv
-replit.nix
-__pycache__
-replit_zip_error_log.txt
+venv/
+.cache
+.replit
+__pycache__/
+.replit_zip_error_log.txt

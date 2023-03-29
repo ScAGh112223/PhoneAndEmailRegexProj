@@ -1,6 +1,11 @@
-import re
-import pyperclip
-import sys, signal
+import re # Regex for email and phone number detection
+import sys, signal # Sys and signal for disabling the Traceback after Ctrl+C from displaying
+import installDependencies as id # Custom script that installs pip packages
+
+id.install(["pyperclip", "requests"]) # Run install command in case pyperclip and requests are not properly installed
+
+import pyperclip # Import after install commad
+import requests # Import after install command
 
 # End the program without traceback if the user presses Ctrl+C(NOT MY CODE, copied)
 signal.signal(signal.SIGINT, lambda x, y: exec("print("") \nsys.exit(0)")) 
@@ -9,6 +14,7 @@ signal.signal(signal.SIGINT, lambda x, y: exec("print("") \nsys.exit(0)"))
 def find_PhoneNumbers(i: str):
   '''Picks out all phone numbers from the given string.
   
+  @params i - string to detect phone numbers from
   @returns a list of all the detected phone numbers.'''
 
   # Regex pattern for supported countries
@@ -24,29 +30,28 @@ def find_PhoneNumbers(i: str):
 def find_Email(i: str):
   '''Picks out all emails from the given string.
   
+  @params i - string to detect phone numbers from
   @returns a list of all the detected emails.'''
 
   # Pattern for emails
-  res = re.findall(r'''[a-zA-Z0-9\.\+-~_]*\@[a-zA-Z0-9\.\+-~_]*\.[a-zA-Z0-9\.\+-~_]*''', i)
-  
+  res = re.findall(r'''[a-zA-Z0-9\.\+-~_]*\@[a-zA-Z0-9\.\+-~_]*\.[a-zA-Z0-9\.\+-~_]*''', i) # Apply email pattern
+  res = [re.sub("(mailto:)|(<a>)|(</a>)|(<br>)|(<br)|>|(x27;)", "", e) for e in res] # Remove some of the html tags that can be included while reading from website
+  res = sorted(set(res)) # Remove duplicates which can also occur when reading from websites
+
   return res # Return found emails
 
-# Only ask for input if file is being ran directly so that it can be used as a module
-if (__name__ == "__main__"):
-  # Supported countries and instructions
-  print("Supported coutnries: Canada, India, Mexico, USA, Antigua and Barbuda, Jamaica, Bermuda, Dominican Republic. Ctrl+C to exit.\nUse Ctrl+Shift+V to paste.")
-  while True:
-    F = input("\nDo you wish to find [p]hone numbers or [e]mails? ").lower().strip() # Ask for which functions to use
+# Function that nicely prints detected emails and phone numbers
+# Made into a function to avoid repeating it 3 times
+def output_Interface(i: str):
+    '''Prints results with a nice interface.
 
-    ########### ALTERNATE CODE FOR READING FROM FILE ----------------------------------------------------------------------------------
+    @parameters:
+        i - input data.
 
-    FR = input("Do you wish to have the data read from a file(this is reccomended for data with multiple lines)?\nIf yes, enter filename otherwise leave blank. ").strip().lower()
-    
-    if (FR != ""):
-      with open(FR, "r") as file:
-        i = file.read()
-
-      if(F == "p"):
+    @returns:
+        nothing
+    '''
+    if(F == "p"):
         res = find_PhoneNumbers(i) # find numbers
       
         if res: 
@@ -58,11 +63,9 @@ if (__name__ == "__main__"):
           if cp == "y": 
             pyperclip.copy(numbers) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
-          continue # End current loop iteration to prevent normal routine from executing
         else: 
           print("No phone numbers found.") # In case nothing is found
-          continue # End current loop iteration to prevent normal routine from executing
-      elif F == 'e':
+    elif F == 'e':
         res = find_Email(i) # find emails
         
         if res: 
@@ -75,41 +78,41 @@ if (__name__ == "__main__"):
           if cp == "y": 
             pyperclip.copy(emails) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
-          continue # End current loop iteration to prevent normal routine from executing
         else: 
           print("No emails found.") # In case nothing is found
-          continue # End current loop iteration to prevent normal routine from executing
 
-    ########### ALTERNATE CODE FOR READING FROM FILE ENDED ------------------------------------------------------------------------------
+# Only ask for input if file is being ran directly so that it can be used as a module
+if (__name__ == "__main__"):
+  # Supported countries and instructions
+  print("Supported coutnries: Canada, India, Mexico, USA, Antigua and Barbuda, Jamaica, Bermuda, Dominican Republic. Ctrl+C to exit.\nUse Ctrl+Shift+V to paste.")
+  print("Options for input type: \n1.Terminal\n2.File\n3.Website")
 
-    if F == 'p': # If phone
-      i = input("Enter data: ")# Ask for input
-      res = find_PhoneNumbers(i) # find numbers
-      
-      if res: 
-        # Format all phone numbers with commas using list comprehension, join them into a string and remove the first redundant comma and space using [2:]
-        numbers = ''.join([f", {p}" for p in res])[2:]
-        print(f"Phone number(s) found: {numbers}") # Print numbers
-        
-        cp = input("Do you wish to copy the detected phone numbers to your clipboard?(y/n)").lower().strip() # Ask if the user wants to copy results
-        if cp == "y": 
-          pyperclip.copy(numbers) # Copy results to user's clipboard
-          print("Result Copied!") # Inform user that the results have been copied
-      else: 
-        print("No phone numbers found.") # In case nothing is found
-    elif F == 'e':
-      i = input("Enter data: ")# Ask for input
-      res = find_Email(i) # find emails
-      
-      if res: 
-        # Format all emails with commas using list comprehension, join them into a string and remove the first redundant comma and space using [2:]
-        emails = ''.join([f", {p}" for p in res])[2:] 
+  while True:
+    FT = input("Enter your input type of choice: ").strip().lower() # Ask for input type
+    F = input("\nDo you wish to find [p]hone numbers or [e]mails? ").lower().strip() # Ask for which functions to use
 
-        print(f"Email(s) found: {emails}") # Print emails
+    ### INPUT TYPE ONE
+    if (FT == "1"):
+        i = input("Enter data: ").strip().lower()
+        output_Interface(i)
 
-        cp = input("Do you wish to copy the detected emails to your clipboard?(y/n)").lower().strip() # Ask if the user wants to copy results
-        if cp == "y": 
-          pyperclip.copy(emails) # Copy results to user's clipboard
-          print("Result Copied!") # Inform user that the results have been copied
-      else: 
-        print("No emails found.") # In case nothing is found
+    ### INPUT TYPE TWO
+    if (FT == "2"):
+      filename = input("Enter the name/path of your file: ").strip().lower() # Ask for filename
+      try: # Try except in case file does not exist
+        with open(filename, "r") as file: # Open file
+          i = file.read() # Read file data
+          output_Interface(i) # Show interface with data read from file
+      except FileNotFoundError:
+          print("File not found, try again.") # Inform user that thier file could not be found
+
+    ### INPUT TYPE THREE
+    if (FT == "3"):
+      url = input("Enter the url to your website: ").strip().lower() # Ask for URL
+      try: # Try except in case an error occurs with reading url source
+        # Send a get request to the url, which returns the a http response with the contents of the website.
+        # Then access the http response's content with .content and after that, decode the bytes into a string for processing.
+        i = requests.get(url).content.decode("utf-8")
+        output_Interface(i) # Show interface with data read from website
+      except requests.RequestException:
+        print("Invalid URL") # Inform user that the URL is invalid
