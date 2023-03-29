@@ -1,14 +1,16 @@
-import re # Regex for email and phone number detection
+import re
+import readline # Regex for email and phone number detection
 import sys, signal # Sys and signal for disabling the Traceback after Ctrl+C from displaying
 import installDependencies as id # Custom script that installs pip packages
+import pprint as pp
+import uuid
 
-id.install(["pyperclip", "requests"]) # Run install command in case pyperclip and requests are not properly installed
+id.install(["pyperclip", "requests", "XlsxWriter", "readchar"]) # Run install command in case pyperclip and requests are not properly installed
 
 import pyperclip # Import after install commad
 import requests # Import after install command
-
-# End the program without traceback if the user presses Ctrl+C(NOT MY CODE, copied)
-signal.signal(signal.SIGINT, lambda x, y: exec("print("") \nsys.exit(0)")) 
+import xlsxwriter # Import after install
+import readchar
 
 # Detecting phone numbers
 def find_PhoneNumbers(i: str):
@@ -40,6 +42,26 @@ def find_Email(i: str):
 
   return res # Return found emails
 
+def save_To_Sheet(d: list):
+  book = xlsxwriter.Workbook(f"PaEDd-{uuid.uuid4()}.xlsx")
+  sheet = book.add_worksheet()
+  
+  for r, val in enumerate(d):
+    sheet.write(r+1, 0, f"Index {r}")
+    sheet.write(r+1, 1, val)
+  
+  sheet.write(0, 0, f"Email index ({len(d)} in total)")
+  sheet.write(0, 1, f"Email address")
+
+  book.close()
+
+def exit_interface(dat):
+  print("Do you wish to save all extracted phones and emails of this session as a spreadsheet?(y/n)? ", end="")
+  sv = readchar.readchar().strip().lower()
+
+  if (sv == "y"): save_To_Sheet(dat)
+  sys.exit(0)
+
 # Function that nicely prints detected emails and phone numbers
 # Made into a function to avoid repeating it 3 times
 def output_Interface(i: str):
@@ -63,6 +85,7 @@ def output_Interface(i: str):
           if cp == "y": 
             pyperclip.copy(numbers) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
+          return res
         else: 
           print("No phone numbers found.") # In case nothing is found
     elif F == 'e':
@@ -72,12 +95,13 @@ def output_Interface(i: str):
           # Format all emails with commas using list comprehension, join them into a string and remove the first redundant comma and space using [2:]
           emails = ''.join([f", {p}" for p in res])[2:] 
 
-          print(f"Email(s) found: {emails}") # Print emails
+          pp.pprint(f"Email(s) found: {emails}") # Print emails
 
           cp = input("Do you wish to copy the detected emails to your clipboard?(y/n)").lower().strip() # Ask if the user wants to copy results
           if cp == "y": 
             pyperclip.copy(emails) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
+          return res
         else: 
           print("No emails found.") # In case nothing is found
 
@@ -87,6 +111,9 @@ if (__name__ == "__main__"):
   print("Supported coutnries: Canada, India, Mexico, USA, Antigua and Barbuda, Jamaica, Bermuda, Dominican Republic. Ctrl+C to exit.\nUse Ctrl+Shift+V to paste.")
   print("Options for input type: \n1.Terminal\n2.File\n3.Website")
 
+  totalSessionData = []
+  signal.signal(signal.SIGINT, lambda x,y : exec("exit_interface(dat=totalSessionData)"))
+
   while True:
     FT = input("Enter your input type of choice: ").strip().lower() # Ask for input type
     F = input("\nDo you wish to find [p]hone numbers or [e]mails? ").lower().strip() # Ask for which functions to use
@@ -94,7 +121,7 @@ if (__name__ == "__main__"):
     ### INPUT TYPE ONE
     if (FT == "1"):
         i = input("Enter data: ").strip().lower()
-        output_Interface(i)
+        totalSessionData.append(output_Interface(i))
 
     ### INPUT TYPE TWO
     if (FT == "2"):
@@ -102,7 +129,7 @@ if (__name__ == "__main__"):
       try: # Try except in case file does not exist
         with open(filename, "r") as file: # Open file
           i = file.read() # Read file data
-          output_Interface(i) # Show interface with data read from file
+          totalSessionData.append(output_Interface(i)) # Show interface with data read from file
       except FileNotFoundError:
           print("File not found, try again.") # Inform user that thier file could not be found
 
@@ -113,6 +140,6 @@ if (__name__ == "__main__"):
         # Send a get request to the url, which returns the a http response with the contents of the website.
         # Then access the http response's content with .content and after that, decode the bytes into a string for processing.
         i = requests.get(url).content.decode("utf-8")
-        output_Interface(i) # Show interface with data read from website
+        totalSessionData.append(output_Interface(i)) # Show interface with data read from website
       except requests.RequestException:
         print("Invalid URL") # Inform user that the URL is invalid
