@@ -31,11 +31,12 @@ def find_Email(i: str):
   return res # Return found emails
 
 # Function that saved requested data to xlsx file
-def save_To_Sheet(data: list):
+def save_To_Sheet(email_data: list = [], phone_data: list = []):
   '''Writes given data to a uniquely named file.
 
   @params:
-      data - data to write to file(must be enumerable)
+      email_data - data to write to file with all emails(must be enumerable)
+      phone_data - data to write to file with all phone numbers(also must be enumerable)
   @returns:
       Tuple - (name of file, full path to file)
   '''
@@ -43,23 +44,31 @@ def save_To_Sheet(data: list):
   book = xlsxwriter.Workbook(uName) # Initiate xlsx workbook with unique filename.
   sheet = book.add_worksheet() # Make worksheet(spreadsheet) in workbook
   
-  for r, val in enumerate(data): # Loop through data and get indeces with enumerate()
+  for r, val in enumerate(email_data): # Loop through data and get indeces with enumerate()
     sheet.write(r+1, 0, r) # Index each data entry  
     sheet.write(r+1, 1, val) # Add value for each entry
-  
-  sheet.write(0, 0, f"Email index ({len(data)} in total)") # Add Index column title and total number of entries
-  sheet.write(0, 1, f"Email address") # Add title for value column
+ 
+  # Same thing but for phones
+  for r, val in enumerate(phone_data):
+    sheet.write(r+1, 3, r)
+    sheet.write(r+1, 4, val)
+
+  sheet.write(0, 0, f"{len(email_data)} emails in total") # Add Index column title and total number of entries
+  sheet.write(0, 1, "Email address") # Add title for value column
+
+  sheet.write(0, 3, f"{len(phone_data)} phones in total") # Add title for phones
+  sheet.write(0, 4, "Phone numbers") # Add second title for phones
 
   book.close() # Close filestream
   
-  return (uName, f"{pathlib.Path().resolve()}/{uName}")
+  return (uName, f"{pathlib.Path().resolve()}\{uName}")
 
 # SIGINT(Ctrl+C) handler function to ask user if they want to save data collected in session
-def exit_interface(data: list):
+def exit_interface(data: tuple):
   '''Provides an interface for the user to optionally save all data extracted within session to a xlsx file.
 
   @params:
-    data - List with all phone numbers and emails to save.
+    data - Tuple ([List with all emails], [List with all phones])
   @returns:
     nothing.
   '''
@@ -69,7 +78,7 @@ def exit_interface(data: list):
   sv = readchar.readkey().strip().lower() # Read using readchar.readkey() as input() does not work.
 
   if (sv == "y"): # If the user wants to, save data to file
-      filePath = save_To_Sheet(data)[1] # Write file and get filePath
+      filePath = save_To_Sheet(data[0], data[1])[1] # Write file and get filePath
       print(f"\nPath to file: {filePath}\nDo you wish to copy this path?(y/n) ", end="") # Tell user file path and ask them if they want to copy it
       cp = readchar.readkey().strip().lower() # Take input
       if(cp == "y"): # If user wants to copy file path
@@ -86,7 +95,7 @@ def output_Interface(i: str):
         i - input data.
 
     @returns:
-        nothing
+        Tuple - ([detected phones/emails], [if user wanted emails(1) or phones(0)])
     '''
     if(F == "p"):
         res = find_PhoneNumbers(i) # find numbers
@@ -102,10 +111,10 @@ def output_Interface(i: str):
           if cp == "y": 
             pyperclip.copy(numbers) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
-          return res
+          return (res, 0)
         else:
           print("No phone numbers found.") # In case nothing is found
-          return [] # Return empty list if nothin is found
+          return ([], 0) # Return empty list if nothin is found
     elif F == 'e':
         res = find_Email(i) # find emails
         
@@ -120,10 +129,12 @@ def output_Interface(i: str):
           if cp == "y": 
             pyperclip.copy(emails) # Copy results to user's clipboard
             print("Result Copied!") # Inform user that the results have been copied
-          return res
+          return (res, 1)
         else: 
           print("No emails found.") # In case nothing is found
-          return [] # Return empty list in case nothing is found
+          return ([], 1) # Return empty list in case nothing is found
+    else:
+        return ([], -1) # Return error code if function not provided
 
 # Only ask for input if file is being ran directly so that it can be used as a module
 if (__name__ == "__main__"):
@@ -131,17 +142,24 @@ if (__name__ == "__main__"):
   print("Supported coutnries: Canada, India, Mexico, USA, Antigua and Barbuda, Jamaica, Bermuda, Dominican Republic. Ctrl+C to exit.\nUse Ctrl+Shift+V to paste.")
   print("Options for input type: \n1.Terminal\n2.File\n3.Website")
 
-  totalSessionData = []
-  signal.signal(signal.SIGINT, lambda x,y : exec("exit_interface(data=totalSessionData)"))
+  totalEmailData = [] # List for all email data
+  totalPhoneData = [] # List for all phone data
+  signal.signal(signal.SIGINT, lambda x,y : exec("exit_interface(data=(totalEmailData, totalPhoneData))")) # Execute exit handler with data
 
   while True:
-    FT = input("Enter your input type of choice: ").strip().lower() # Ask for input type
-    F = input("\nDo you wish to find [p]hone numbers or [e]mails? ").lower().strip() # Ask for which functions to use
+    FT = input("\nEnter your input type of choice: ").strip().lower() # Ask for input type
+    F = input("Do you wish to find [p]hone numbers or [e]mails? ").lower().strip() # Ask for which functions to use
 
     ### INPUT TYPE ONE
     if (FT == "1"):
         i = input("Enter data: ").strip().lower()
-        totalSessionData.extend(output_Interface(i))
+
+        # Show output interface, detect if the user extracted email or phone and sort into appropriate list.
+        (res, ep) = output_Interface(i)
+        if (ep == 0):
+            totalPhoneData.extend(res)
+        elif (ep == 1):
+            totalEmailData.extend(res)
 
     ### INPUT TYPE TWO
     if (FT == "2"):
@@ -149,7 +167,14 @@ if (__name__ == "__main__"):
       try: # Try except in case file does not exist
         with open(filename, "r") as file: # Open file
           i = file.read() # Read file data
-          totalSessionData.extend(output_Interface(i)) # Show interface with data read from file
+
+          # Show output interface, detect if the user extracted email or phone and sort into appropriate list.
+          (res, ep) = output_Interface(i)
+          if (ep == 0):
+              totalPhoneData.extend(res)
+          elif (ep == 1):
+              totalEmailData.extend(res)
+
       except FileNotFoundError:
           print("File not found, try again.") # Inform user that thier file could not be found
 
@@ -160,6 +185,13 @@ if (__name__ == "__main__"):
         # Send a get request to the url, which returns the a http response with the contents of the website.
         # Then access the http response's content with .content and after that, decode the bytes into a string for processing.
         i = requests.get(url).content.decode("utf-8")
-        totalSessionData.extend(output_Interface(i)) # Show interface with data read from website
+
+        # Show output interface, detect if the user extracted email or phone and sort into appropriate list.
+        (res, ep) = output_Interface(i)
+        if (ep == 0):
+            totalPhoneData.extend(res)
+        elif (ep == 1):
+            totalEmailData.extend(res)
+
       except requests.RequestException:
         print("Invalid URL") # Inform user that the URL is invalid
