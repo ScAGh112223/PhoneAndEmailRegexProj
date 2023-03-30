@@ -1,9 +1,10 @@
-import importlib # Used to reliably import dependecies as variables
-import sys, re # Import dependecies that dont need to be or cannot be installed
+import importlib, subprocess # Used to reliably import dependecies as variables
+import sys, re, pprint, signal # Import dependecies that dont need to be or cannot be installed
 
 # __all__ allows the variables or module names in it to be accessed from any file that import __init__.*
-__all__ = ["sys", "re"] # Initialize __all__ with sys as it is needed for both init and main.py and re to just only have one import in main
-dependecies = ["pyperclip", "pprint", "requests", "signal", "uuid", "readchar", "xlsxwriter", "pathlib"] # List of dependecies
+__all__ = ["sys", "re", "pprint", "signal"] # Initialize __all__ with dependencies that are needed for both init and main.py
+
+dependecies = ["pyperclip", "requests", "uuid", "readchar", "xlsxwriter", "pathlib"] # List of dependecies
 
 for dependyName in dependecies: # Go through needed dependecies
     try: # try except to check if package is already installed (to save on load times)
