@@ -1,17 +1,4 @@
-#import pathlib # Used to get current woking directory
-#import re # Regex for email and phone number detection
-#import sys, signal # Sys and signal for disabling the Traceback after Ctrl+C from displaying
 from __init__ import *# Custom script that installs pip packages
-#import pprint as pp # Print data in a nice format
-#import uuid # Generate unique identifier for filenames
-
-packages = ["re", "sys", "pyperclip", "pprint", "requests", "signal", "uuid", "readchar", "XlsxWriter", "pathlib"]
- # Run install command in case pyperclip and requests are not properly installed
-
-#import pyperclip # Import after install commad
-#import requests # Import after install command
-#import xlsxwriter # Import after install
-#import readchar
 
 # Detecting phone numbers
 def find_PhoneNumbers(i: str):
