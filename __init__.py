@@ -10,12 +10,34 @@ Note: Autofill and intellisense will not be available for dependencies.
 '''
 
 import importlib, subprocess # Used to reliably import dependecies as variables
-import sys, re, pprint, signal # Import dependecies that dont need to be or cannot be installed
+import sys, re, pprint, signal, platform # Import dependecies that dont need to be or cannot be installed
 
 # __all__ allows the variables or module names in it to be accessed from any file that import __init__.*
-__all__ = ["sys", "re", "pprint", "signal"] # Initialize __all__ with dependencies that are needed for both init and main.py
+__all__ = ["sys", "re", "pprint", "signal", "platform"] # Initialize __all__ with dependencies that are needed for both init and main.py
 
 dependecies = ["pyperclip", "requests", "uuid", "readchar", "xlsxwriter", "pathlib"] # List of dependecies
+
+# Special code to install selenium as the other code does not work with this.
+# This is due to 'webdriver' being another module inside of the selenium module, which means that it cannot be imported with importlib or __import__()
+try:
+  # Import webdriver, By, WebDriverWait(for waiting for site load) and EC(also for waiting for site load), then add them to __all__
+  from selenium import webdriver
+  from selenium.webdriver.support.ui import WebDriverWait
+  from selenium.webdriver.support import expected_conditions as EC
+  from selenium.webdriver.common.by import By
+
+  __all__.extend(["webdriver", "By", "WebDriverWait", "EC"])
+except ImportError: # If selenium need to be installed, install and then import and add to __all__
+  subprocess.check_call([sys.executable, "-m", "pip", "install", "selenium"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.STDOUT)
+
+  from selenium import webdriver
+  from selenium.webdriver.support.ui import WebDriverWait
+  from selenium.webdriver.support import expected_conditions as EC
+  from selenium.webdriver.common.by import By
+
+  __all__.extend(["webdriver", "By", "WebDriverWait", "EC"])
 
 for dependencyName in dependecies: # Go through needed dependecies
     try: # try except to check if package is already installed (to save on load times)

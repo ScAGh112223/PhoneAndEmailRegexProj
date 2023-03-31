@@ -30,6 +30,27 @@ def find_Email(i: str):
 
   return res # Return found emails
 
+# Gets user-visible website content with selenium using the browser that is required
+def get_webiste_body(browser: str, url:str):
+    body = "" # Initialize body text variable
+    ldic = locals() # Store current local variables in another variable so that they can be accessed in exec function 
+    try:
+        # Make a webdriver options for requested browser, set it to headless, set window size, stop debug printing, initialize driver, load url, wait for site to load and get body content(in line order) 
+        exec(f'''
+options = webdriver.{browser}Options()
+options.add_argument("--headless=new")
+options.add_argument('window-size=1920x1080')
+options.add_experimental_option('excludeSwitches', ['enable-logging'])
+driver = webdriver.{browser}(options=options)
+driver.get('{url}')
+body = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+    ''', globals(), ldic) # Pass in requried arguments to access body outside of exec
+        return ldic["body"].text # Return body text
+    except Exception as e: # If URL is invalid, print invalid url and return -1(as string so that regex doesnt thro an error)
+        print(f"Invalid URL {e}")
+        return "-1"
+
+
 # Function that saved requested data to xlsx file
 def save_To_Sheet(email_data: list = [], phone_data: list = []):
   '''Writes given data to a uniquely named file.
@@ -182,9 +203,15 @@ if (__name__ == "__main__"):
     if (FT == "3"):
       url = input("Enter the url to your website: ").strip().lower() # Ask for URL
       try: # Try except in case an error occurs with reading url source
-        # Send a get request to the url, which returns the a http response with the contents of the website.
-        # Then access the http response's content with .content and after that, decode the bytes into a string for processing.
-        i = requests.get(url).content.decode("utf-8")
+     
+        # Use most common browsers for each OS (didn't use edge for windows as a special version needs to be installed to be used with selenium)
+        match platform.system():
+          case "Windows":
+            i = get_webiste_body("Chrome", url)
+          case "Linux":
+            i = get_webiste_body("Firefox", url)
+          case "Mac":
+            i = get_webiste_body("Safari", url)
 
         # Show output interface, detect if the user extracted email or phone and sort into appropriate list.
         (res, ep) = output_Interface(i)
